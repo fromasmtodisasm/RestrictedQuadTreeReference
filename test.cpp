@@ -70,6 +70,9 @@ public:
                                   int level) override {
     cout << string(level, ' ') << "[" << endl;
   }
+  virtual void OnRecursioCall(QuadTree *qt, bool is_last, int level) {
+
+	}
   virtual void AfterRecursioCall(QuadTree *qt, bool is_last,
                                  int level) override {
     if (!is_last)
@@ -90,3 +93,5 @@ int main() {
   // draw(quadTree, render.get(), 0, 0, 0);
   return 0;
 }
+
+

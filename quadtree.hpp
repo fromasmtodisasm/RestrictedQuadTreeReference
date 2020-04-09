@@ -14,6 +14,7 @@ struct ITreeVisitorCallback {
   virtual void AfterVisit(QuadTree *qt) {}
   virtual void OnLeaf(QuadTree *qt, bool is_last, int level) {}
   virtual void BeforeRecursioCall(QuadTree *qt, bool is_last, int level) {}
+  virtual void OnRecursioCall(QuadTree *qt, bool is_last, int level) {}
   virtual void AfterRecursioCall(QuadTree *qt, bool is_last, int level) {}
 };
 
@@ -152,3 +153,4 @@ public:
   color3 m_color;
   std::vector<std::shared_ptr<QuadTree>> m_children;
 };
+
