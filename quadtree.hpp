@@ -1,4 +1,3 @@
-
 #include <algorithm>
 #include <array>
 #include <iostream>
@@ -6,6 +5,17 @@
 #include <string>
 #include <tuple>
 #include <vector>
+
+class QuadTree;
+using QuadTreeRef = std::shared_ptr<QuadTree>;
+
+struct ITreeVisitorCallback {
+  virtual void BeforVisit(QuadTree *qt) {}
+  virtual void AfterVisit(QuadTree *qt) {}
+  virtual void OnLeaf(QuadTree *qt, bool is_last, int level) {}
+  virtual void BeforeRecursioCall(QuadTree *qt, bool is_last, int level) {}
+  virtual void AfterRecursioCall(QuadTree *qt, bool is_last, int level) {}
+};
 
 struct color3 {
   double r, g, b;
@@ -31,7 +41,6 @@ class QuadTree {
   };
 
 public:
-  using Ptr = std::shared_ptr<QuadTree>;
   QuadTree(int depth, double size, double x, double y, color3 color)
       : m_depth(depth), m_size(size), m_x(x), m_y(y), m_color(color) {}
   auto get_offset_by_index(int i) {
@@ -96,7 +105,7 @@ public:
     return Quad(std::get<0>(origin), std::get<1>(origin), color);
   }
 
-  QuadTree::Ptr make_child(int i) {
+  QuadTreeRef make_child(int i) {
     auto quad = get_quad(i);
     return std::make_shared<QuadTree>(m_depth - 1, 0.5 * m_size, quad.ox,
                                       quad.oy, quad.color);
@@ -112,43 +121,31 @@ public:
     }
   }
 
-  void draw(IRender *render, double ox, double oy, int level) {
-    using namespace std;
-    cout.precision(8);
-    cout << string(" ", level) << "{" << endl;
-    cout << string(" ", level + 1) << "\"root\": " << endl;
-    draw_recursive(render, ox, oy, level + 1, true);
-    cout << string(" ", level) << "}" << endl;
+  void visit(ITreeVisitorCallback *callback, double ox, double oy, int level) {
+    callback->BeforVisit((this));
+    visit_recursive(callback, ox, oy, level + 1, true);
+    callback->AfterVisit((this));
   }
 
-  void draw_recursive(IRender *render, double ox, double oy, int level,
-                      bool is_last) {
+  void visit_recursive(ITreeVisitorCallback *callback, double ox, double oy,
+                       int level, bool is_last) {
     using namespace std;
 
     if (m_children.size() == 0) {
-      cout << string(level, ' ') << "{ ";
-      render->draw_plane(m_x, m_y, m_size, m_color);
-      if (!is_last)
-        cout << " },";
-      else
-        cout << " }";
-      cout << endl;
+      callback->OnLeaf((this), is_last, level);
     } else {
-      cout << string(level, ' ') << "[" << endl;
+      callback->BeforeRecursioCall((this), is_last, level);
       for (int i = 0; i < 4; i++) {
         auto offset = get_offset_by_index(i);
         auto origin = get_origin(this, i);
-        m_children[i]->draw_recursive(render, std::get<0>(origin),
-                                      std::get<0>(origin), level + 1, i == 3);
+        m_children[i]->visit_recursive(callback, std::get<0>(origin),
+                                       std::get<0>(origin), level + 1, i == 3);
       }
-      if (!is_last)
-        cout << string(level, ' ') << "]," << endl;
-      else
-        cout << string(level, ' ') << "]" << endl;
+      callback->AfterRecursioCall((this), is_last, level);
     }
   }
 
-private:
+public:
   int m_depth;
   double m_size;
   double m_x, m_y;
